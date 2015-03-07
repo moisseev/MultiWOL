@@ -1,0 +1,14 @@
+0.1.3
+    - Fixed ARP lookup for Linux
+    - Fixed i18n for Linux
+
+0.1.2
+    - Reverted back to old style defined-or operator since perl <5.9.0 does not support C-style //
+    - Reverted back to old style $p->{port_num} since Net::Ping <2.33 does not support method port_number()
+    - Switched to DB_File from AnyDBM_File for identical behavior at different OSes
+    - Fixed HTTP and HTML headers (expires and lang parameters)
+    - Now if the remote host replies ECONNREFUSED, it is considered unreachable (important for routed networks)
+
+0.1.1
+    - Fixed HTML markup
+    - Added "Backup Database" button
