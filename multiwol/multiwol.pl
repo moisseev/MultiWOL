@@ -127,7 +127,7 @@ sub send_mp { # send magic packets to selected hosts
         if (my ($hostname_port, $broadcast_addr) = split(',', $entry{$mac})) { # DB entry may be deleted by another session
             my ($hostname, $port) = split(':', $hostname_port);
             printf("%s %s:%u &nbsp;&nbsp; %s<br />", $mac, $broadcast_addr, BROADCAST_PORT, $hostname_port);
-            $mac =~ tr/.//d; # remove dots
+            $mac =~ tr/-.//d; # remove dots and dashes
             Net::Wake::by_udp($broadcast_addr,$mac,BROADCAST_PORT); # Send the wakeup packet
             $port{$hostname} = $port if(defined $port);
         }
