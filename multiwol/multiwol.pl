@@ -208,10 +208,31 @@ sub print_newmac_form {
         table( caption(__ 'Add new entry to list:'),
             TR([
                 td(['', b(__ "Hostame:"), textfield(-name=>'new_hostname',
+
+                                                    -title=>
+'hostname:port
+
+To test host availability MultiWOL will try to establish
+TCP connection to specified port or 7 (echo) if omitted.
+
+Examples:
+    host
+    host:22
+    host.example.com:3389
+',
+
                                                     -size=>40,
                                                     -maxlength=>420).' '.__ ('(hostname:port, default domain is').' '.i(hostdomain ()).')'
                 ]),
                 td(['*', b(__ "MAC:"), textfield(-name=>'new_mac',
+                                                 -title=>
+'Examples:
+    AC:DE:48:01:02:03 (Unix)
+    AC-DE-48-01-02-03 (Windows)
+    ACDE.4801.0203 (Cisco)
+    ACDE48010203
+',
+
                                                  -size=>17,
                                                  -maxlength=>17).' '.__ ('(in any wellknown format)').' '.submit(-name=>'getMAC', -value=>__ 'get MAC')
                 ]),
