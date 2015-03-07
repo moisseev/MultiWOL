@@ -2,7 +2,7 @@
 #
 # MultiWOL - CGI script for power up computers remotely
 #
-# Copyright (c) 2010, Alexander Moisseev <moiseev@mezonplus.ru>
+# Copyright (c) 2010-2015, Alexander Moisseev <moiseev@mezonplus.ru>
 # This software is released under the Simplified BSD License.
 #
 
@@ -501,7 +501,7 @@ S<Alexander Moisseev E<lt>moiseev@mezonplus.ruE<gt>>
 
 =head1 LICENSE and COPYRIGHT
 
- Copyright (c) 2010-2012, Alexander Moisseev
+ Copyright (c) 2010-2015, Alexander Moisseev
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without 
