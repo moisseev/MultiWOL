@@ -71,7 +71,6 @@ caption { font-family: "Times New Roman", serif;
 }
 hr { height: 1px; background-color: #999; border: 0;}
 a:link, a:visited { color: #39f; text-decoration:none; }
-a:hover, a:active { text-decoration:underline; }
 a img { border: none; }
 A.Button:link,A.Button:visited { float: right; width: 120px; padding: 3px;
                                  font-weight: bold; color: #fff; background-color: #39f;
