@@ -23,7 +23,7 @@ use POSIX qw( setlocale  LC_ALL );
 
 use constant DEF_LANG => '';
 
-use constant VERSION => 'MultiWOL 0.1.3';
+use constant VERSION => 'MultiWOL 0.1.4';
 
 ##-----------------------------
 ## CONFIGURATION OPTIONS
