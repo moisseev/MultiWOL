@@ -261,8 +261,17 @@ sub build_table() {
 
     tie (%entry, 'DB_File', DB_FILE, O_CREAT|O_RDWR, 0640) || die "Cannot open DBM ".DB_FILE.": $!";
     while (my ($mac, $entry_val) = each %entry) {
-        my ($hostname_port, $broadcast_addr, $owner) = split(',', $entry_val);
-        next if (!$_[0] && (!$owner || $owner ne REMOTE_USER)); #display table row only to the owner or trusted users
+        my ($hostname_port, $broadcast_addr, $owner) = split(',', $entry_val, 3);
+
+        my $valid_owner = 0;
+        if ( defined REMOTE_USER ) {
+            foreach my $user ( split( ', ', $owner ) ) {
+                if ( $user eq REMOTE_USER ) { $valid_owner = 1; last; }
+            }
+        }
+
+        #display table row only to owners or trusted users
+        next if ( !$_[0] && ( !$owner || !$valid_owner ) );
 
         my ($hostname, $port) = split(':', $hostname_port);
         $p->{port_num} = $port;
@@ -288,11 +297,10 @@ sub add_entry {
         $msg = __"Malformed broadcast address";
     } elsif (param("new_mac") !~ /^([\da-f]{2}[:\-]?[\da-f]{2}[:\-.]?){2}[\da-f]{2}[:\-]?[\da-f]{2}$/i) {
         $msg = __"Malformed MAC address";
-    } elsif (param("new_owner") =~ /,/) {
-        $msg = __"Comma is not allowed in owner's name";
     } else {
+        my $new_owners = param("new_owner") =~ s/[ ,;]+/, /gr;
         tie (%entry, 'DB_File', DB_FILE, O_CREAT|O_RDWR, 0640) || die "Cannot open DBM ".DB_FILE.": $!";
-        $entry{lc(param("new_mac"))} = (param("new_hostname").",".param("new_bc").",".param("new_owner"));
+        $entry{lc(param("new_mac"))} = (param("new_hostname").",".param("new_bc").",".$new_owners);
         untie %entry;
         $msg = __"Entry saved"; $bClass="Confirm";
     }
@@ -469,7 +477,7 @@ is a translation file ./locale/I<ru>/LC_MESSAGES/
 
 =head1 REQUIREMENTS
 
-Perl 5.005, IO::Interface, Locale::gettext, Net::ARP, Net::Wake, a web server with CGI capabilities
+Perl 5.014, IO::Interface, Locale::gettext, Net::ARP, Net::Wake, a web server with CGI capabilities
 
 =head1 SEE ALSO
 
