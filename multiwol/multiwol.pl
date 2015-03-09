@@ -21,38 +21,33 @@ use IO::Socket;
 use IO::Interface qw(:flags);
 use POSIX qw( setlocale  LC_ALL );
 
-use constant DEF_LANG => '';
-
 use constant VERSION => 'MultiWOL 0.1.4';
 
 ##-----------------------------
-## CONFIGURATION OPTIONS
+## DEFAULT CONFIGURATION OPTIONS
 
 # Paths (relative to multiwol.pl location)
-use constant DB_FILE		=> 'multiwol.db';	# Database file.
-use constant LOCALE_DIR		=> 'locale';		# Locale directory.
-use constant STATIC_DIR_URI	=> 'static';		# Static files directory URI.
-use constant DB_FILE_URI	=> DB_FILE;		# Database file URI.
+our $dbFile       = 'multiwol.db';    # Database file.
+our $localeDir    = 'locale';         # Locale directory.
+our $staticDirURI = 'static';         # Static files directory URI.
+our $dbFileURI    = $dbFile;          # Database file URI.
 
-# Use absolute paths below if multiwol.pl is placed under /cgi-bin/ directory.
-#use constant DB_FILE		=> "$ENV{DOCUMENT_ROOT}/multiwol/multiwol.db";
-#use constant LOCALE_DIR	=> "$ENV{DOCUMENT_ROOT}/multiwol/locale";
-#use constant STATIC_DIR_URI	=> 'http://www/multiwol/static';
-#use constant DB_FILE_URI	=> 'http://www/multiwol/multiwol.db';
+our @trustedUsers;
 
-#use constant DEF_LANG => 'ru'; # Changes default UI language from English to Russian.
+# Magic Packet parameters
+our $defaultBroadcastAddr = '192.168.0.255';    # Default for new host.
+our $broadcastPort        = 7;                  # UDP port.
 
-use constant TRUSTED_USERS => qw(moiseev morev); # Trusted users have access to all list and may add and remove entries.
-#use constant TRUSTED_USERS => undef; # Unrestricted access for all users.
+# Host status probe options
+our $timeout    = 2;     # Timeout beetween probes.
+our $probeCount = 30;    # Stop after sending N unsuccessful probe packets.
 
-# Network defaults
-use constant DEFAULT_BROADCAST_ADDR => '192.168.0.255'; # Default broadcast address when adding new host.
-use constant BROADCAST_PORT => 7; # Magic Packet UDP port.
-use constant TIMEOUT => 2; # Timeout beetween probes.
-my $count = 30; # Stop after sending $count probe packets.
+our $defaultLanguage = '';
 
 ## End of CONFIGURATION OPTIONS
 ##-----------------------------
+
+&ConfigDataRead('./multiwol.conf');
 
 use constant REMOTE_USER => $ENV{REMOTE_USER};
 
@@ -92,11 +87,14 @@ my %locale = (
              );
 
 # Environment variable required for BSD, setlocale function for Linux
-$ENV{LC_ALL} = setlocale(LC_ALL, url_param('lang') ? $locale{url_param('lang')} : $locale{DEF_LANG()});
+$ENV{LC_ALL} = setlocale( LC_ALL,
+    url_param('lang')
+    ? $locale{ url_param('lang') }
+    : $locale{$defaultLanguage} );
 
 # gettext defined here
 my $d = Locale::gettext->domain("multiwol");
-$d->dir( LOCALE_DIR );
+$d->dir($localeDir);
 sub __ ($) { $d->get( shift ) }	# __ is alias for $d->get
 
 
@@ -116,18 +114,28 @@ MAIN:
         &print_form();
 }
 
+sub ConfigDataRead {
+    unless ( my $ret = do "@_" ) {
+        warn "Couldn't execute @_: $@" if $@;
+        warn "Couldn't open @_: $!"    if $!;
+    }
+}
+
 sub send_mp { # send magic packets to selected hosts
     &print_header();
     print b(__"Wake-on-LAN packet has been sent to:"), br;
     my %entry=();
     my %port=();
-    tie (%entry, 'DB_File', DB_FILE, O_RDONLY) || die "Cannot open DBM ".DB_FILE.": $!";
+    tie( %entry, 'DB_File', $dbFile, O_RDONLY )
+      || die "Cannot open DBM " . $dbFile . ": $!";
     foreach my $mac(param('mac')) {
         if (my ($hostname_port, $broadcast_addr) = split(',', $entry{$mac})) { # DB entry may be deleted by another session
             my ($hostname, $port) = split(':', $hostname_port);
-            printf("%s %s:%u &nbsp;&nbsp; %s<br />", $mac, $broadcast_addr, BROADCAST_PORT, $hostname_port);
+            printf( "%s %s:%u &nbsp;&nbsp; %s<br />",
+                $mac, $broadcast_addr, $broadcastPort, $hostname_port );
             $mac =~ tr/-.//d; # remove dots and dashes
-            Net::Wake::by_udp($broadcast_addr,$mac,BROADCAST_PORT); # Send the wakeup packet
+            # Send the wakeup packet
+            Net::Wake::by_udp( $broadcast_addr, $mac, $broadcastPort );
             $port{$hostname} = $port if(defined $port);
         }
     }
@@ -143,6 +151,7 @@ sub send_mp { # send magic packets to selected hosts
 
     $|=1; # disable output buffering
     my $p = Net::Ping->new("tcp", 2); $p->service_check(1);
+    my $count     = $probeCount;
     my $linebreak = 0;
     while ($count--) {
         while (my ($hostname,$port) = each(%port)) {
@@ -155,7 +164,8 @@ sub send_mp { # send magic packets to selected hosts
         }
   last if ($count <= 0 || !%port);
         if ($linebreak) {print br; $linebreak = 0;}
-        print "."; sleep(TIMEOUT);
+        print ".";
+        sleep($timeout);
     }
 
     $|=0; # enable output buffering
@@ -171,22 +181,17 @@ sub send_mp { # send magic packets to selected hosts
     &print_footer();
 }
 
-
 sub print_form {
-    my $trusted_user = 0;
-    if (defined TRUSTED_USERS) {
-        if (defined REMOTE_USER) {
-            foreach my $user(TRUSTED_USERS) {
-                if ($user eq REMOTE_USER) {$trusted_user = 1; last;}
-            }
-        }
-    } else {$trusted_user = 1}
+    my $trusted_user = ( $#trustedUsers == 0 && $trustedUsers[0] eq '*' )
+      || ( defined REMOTE_USER && grep $_ eq REMOTE_USER, @trustedUsers )
+      ? 1
+      : 0;
 
   # Print select form
     &print_header();
     print start_form, '<div>';
 
-    if (!defined REMOTE_USER and defined TRUSTED_USERS) {
+    if ( !defined REMOTE_USER and @trustedUsers ) {
         print b({-class=>'Warn'}, __ 'Authorization required.');
     } else {
         &build_table($trusted_user);
@@ -237,7 +242,7 @@ Examples:
                                                  -maxlength=>17).' '.__ ('(in any wellknown format)').' '.submit(-name=>'getMAC', -value=>__ 'get MAC')
                 ]),
                 td(['*', b(__ "Broadcast:"), textfield(-name=>'new_bc',
-                                                       -default=>DEFAULT_BROADCAST_ADDR,
+                                                       -default=>$defaultBroadcastAddr,
                                                        -size=>15,
                                                        -maxlength=>15)
                 ]),
@@ -248,7 +253,8 @@ Examples:
             ]),
         ), p,
         b({-class=>$bClass},$msg), p,
-        a({-class=>'Button', -href=>DB_FILE_URI}, __ 'Backup database'), submit(-name=>'add', -value=>__ 'Add'), " ", reset,
+        a( { -class => 'Button', -href => $dbFileURI }, __ 'Backup database' ),
+        submit( -name => 'add', -value => __ 'Add' ), " ", reset,
         '</div>', end_form;
 }
 
@@ -259,7 +265,8 @@ sub build_table() {
 
     my $p = Net::Ping->new("tcp", 0.05); $p->service_check(1);
 
-    tie (%entry, 'DB_File', DB_FILE, O_CREAT|O_RDWR, 0640) || die "Cannot open DBM ".DB_FILE.": $!";
+    tie( %entry, 'DB_File', $dbFile, O_CREAT | O_RDWR, 0640 )
+      || die "Cannot open DBM " . $dbFile . ": $!";
     while (my ($mac, $entry_val) = each %entry) {
         my ($hostname_port, $broadcast_addr, $owner) = split(',', $entry_val, 3);
 
@@ -282,7 +289,15 @@ sub build_table() {
         }
         push(@rows,td({-style =>"background-color:$row_color"},[checkbox(-name=>'mac',
                                                                          -value=>$mac,
-                                                                         -label =>$hostname_port)]).td({-align=>'center'},[$mac, defined($broadcast_addr) ? $broadcast_addr : DEFAULT_BROADCAST_ADDR, $owner]));
+                                                                         -label =>$hostname_port)]).td({-align=>'center'}, [
+                                                                                                                                $mac,
+                                                                                                                                defined($broadcast_addr)
+                                                                                                                                ? $broadcast_addr
+                                                                                                                                : $defaultBroadcastAddr,
+                                                                                                                                $owner
+                                                                                                                            ]
+                                                                                                      )
+        );
     }
     untie %entry;
     print table(TR(\@rows));
@@ -299,7 +314,8 @@ sub add_entry {
         $msg = __"Malformed MAC address";
     } else {
         my $new_owners = param("new_owner") =~ s/[ ,;]+/, /gr;
-        tie (%entry, 'DB_File', DB_FILE, O_CREAT|O_RDWR, 0640) || die "Cannot open DBM ".DB_FILE.": $!";
+        tie( %entry, 'DB_File', $dbFile, O_CREAT | O_RDWR, 0640 )
+          || die "Cannot open DBM " . $dbFile . ": $!";
         $entry{lc(param("new_mac"))} = (param("new_hostname").",".param("new_bc").",".$new_owners);
         untie %entry;
         $msg = __"Entry saved"; $bClass="Confirm";
@@ -308,7 +324,8 @@ sub add_entry {
 
 sub del_entry {
     my %entry=();
-    tie (%entry, 'DB_File', DB_FILE, O_RDWR) || die "Cannot open DBM ".DB_FILE.": $!";
+    tie( %entry, 'DB_File', $dbFile, O_RDWR )
+      || die "Cannot open DBM " . $dbFile . ": $!";
     delete @entry{param('mac')};
     untie %entry;
 }
@@ -372,15 +389,29 @@ sub print_header {
                   -charset => 'UTF-8'
           ),
         start_html( -title=>'MultiWOL - '.__"remote power-up of computers",
-                    -head =>Link({-rel =>'icon',-type =>'image/png',-href=>STATIC_DIR_URI.'/multiwolico.png'}),
+                    -head  => Link(
+                        {
+                            -rel  => 'icon',
+                            -type => 'image/png',
+                            -href => $staticDirURI . '/multiwolico.png'
+                        }
+                    ),
                     -style=>{-code=>STYLE},
                     -dtd=>'-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd',
-                    -lang=>defined(url_param('lang')) ? url_param('lang') : DEF_LANG,
+                    -lang => defined( url_param('lang') )
+                      ? url_param('lang')
+                      : $defaultLanguage,
                     -encoding=>'UTF-8'
         ),
         '<div id="wrap">',
         div({-style=>'float:right;'},
-            a({-href=>'http://multiwol.sourceforge.net'}, img{-src=>STATIC_DIR_URI.'/multiwolico48.png', -alt=>'MultiWOL'})
+            a(
+                { -href => 'http://multiwol.sourceforge.net' },
+                img {
+                    -src => $staticDirURI . '/multiwolico48.png',
+                    -alt => 'MultiWOL'
+                }
+            )
         ),
         table (TR(td({-style =>"background-color:#cfc;font-size:24px;"}, "MultiWOL"), td(__"remote power-up of computers"))),
         p;
@@ -457,7 +488,7 @@ I<Multi>-language support (English, Russian).
 
 =over
 
-=item B<lang=>I<lang> UI language (e.g. lang=ru for Russian). Default is English. DEF_LANG constant overrides this default.
+=item B<lang=>I<lang> UI language (e.g. lang=ru for Russian). Default is English. $defaultLanguage overrides this default.
 
 =back
 

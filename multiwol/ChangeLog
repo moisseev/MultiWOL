@@ -1,6 +1,7 @@
 0.1.4
     - Fixed powering up hosts with dashed MACs
     + Added support for multiple owners for a host
+    + Added configuration file support
 
 0.1.3
     - Fixed ARP lookup for Linux

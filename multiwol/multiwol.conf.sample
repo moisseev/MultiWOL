@@ -1,0 +1,25 @@
+# Paths (relative to multiwol.pl location)
+#$dbFile       = 'multiwol.db';    # Database file.
+#$localeDir    = 'locale';         # Locale directory.
+#$staticDirURI = 'static';         # Static files directory URI.
+#$dbFileURI    = $dbFile;          # Database file URI.
+
+# Use absolute paths below if multiwol.pl has placed under /cgi-bin/ directory.
+#$dbFile       = "$ENV{DOCUMENT_ROOT}/multiwol/multiwol.db";
+#$localeDir    = "$ENV{DOCUMENT_ROOT}/multiwol/locale";
+#$staticDirURI = 'http://www/multiwol/static';
+#$dbFileURI    = 'http://www/multiwol/multiwol.db';
+
+# Trusted users have access to all list and allowed to add and remove entries.
+#@trustedUsers = qw( user1 user2 user3 );
+@trustedUsers = '*'; # Unrestricted access for all users.
+
+# Magic Packet parameters
+#$defaultBroadcastAddr = '192.168.0.255';    # Default for new host.
+#$broadcastPort        = 7;                  # UDP port.
+
+# Host status probe options
+#$timeout    = 2;     # Timeout beetween probes.
+#$probeCount = 30;    # Stop after sending N unsuccessful probe packets.
+
+#$defaultLanguage = 'ru'; # Changes default UI language from English to Russian.
