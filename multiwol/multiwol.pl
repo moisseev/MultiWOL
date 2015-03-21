@@ -217,12 +217,17 @@ sub send_mp {
           b( { -class => 'Warn' }, __ "failed" );
     }
 
-    print p,
+    print start_form, '<div>', p,
       button(
         -name    => 'back',
         -value   => __ 'Back',
         -onClick => 'history.back()'
       );
+    if ( scalar keys %port ) {
+        print " ", hidden( -name => 'mac' ),
+          submit( -name => 'wakeup', -value => __ 'Repeat' );
+    }
+    print '</div>', end_form;
     &print_footer();
 }
 
