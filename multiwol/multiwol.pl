@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/local/bin/perl -w
 #
 # MultiWOL - CGI script for power up computers remotely
 #
