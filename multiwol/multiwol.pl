@@ -661,7 +661,21 @@ is a translation file ./locale/I<ru>/LC_MESSAGES/
 
 =head1 REQUIREMENTS
 
-Perl 5.014, IO::Interface, Locale::gettext, Net::ARP, Net::Wake, a web server with CGI capabilities
+=over 4
+
+=item *
+
+Perl 5.014
+
+=item *
+
+Perl modules: CGI, IO::Interface, Locale::gettext, Net::ARP, Net::Wake
+
+=item *
+
+a web server with CGI capabilities
+
+=back
 
 =head1 SEE ALSO
 
