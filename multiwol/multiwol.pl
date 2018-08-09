@@ -97,6 +97,10 @@ A.Button:hover, A.Button:active { background-color: #06c; }
 B.Warn    { font-family: sans-serif; color: red; }
 B.Confirm { font-family: sans-serif; color: green; }
 
+table#legend>tbody>tr>td { padding: 0; border: 0; }
+table#legend table { margin: 6px; }
+table#legend td { padding: 6px; }
+
 END
 
 my %locale = (
@@ -381,10 +385,13 @@ sub build_table() {
         next if ( !$_[0] && ( !$owner || !$valid_owner ) );
 
         my ( $hostname, $port ) = split( ':', $hostname_port );
-        $p->{port_num} = $port;
-        my $ping = ( $p->ping($hostname) );
-
-        $row_color = $ping ? '#cfc' : '#fff';
+        if ( inet_aton($hostname) ) {
+            $p->{port_num} = $port;
+            my $ping = ( $p->ping($hostname) );
+            $row_color = $ping ? '#cfc' : '#fff';
+        } else {
+            $row_color = '#fcc'
+        }
         push(
             @rows,
             td(
@@ -411,10 +418,14 @@ sub build_table() {
     }
     untie %entry;
     print table( TR( \@rows ) );
-    print table(
+    print table( { -id => 'legend' },
         TR(
-            td( { -style => "background-color:#cfc" } ),
-            td( { -style => "padding: 0 0 0 0.5em; border:0;" }, __ "on-line" )
+            td( table( TR( td( { -style => "background-color:#cfc;" } ) ) ) ),
+            td( __ "on-line" )
+        ),
+        TR(
+            td( table( TR( td( { -style => "background-color:#fcc;" } ) ) ) ),
+            td( __ "cannot resolve ip address" )
         )
     );
 }
