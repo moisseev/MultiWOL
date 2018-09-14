@@ -7,7 +7,7 @@
 #
 
 use strict;
-use CGI qw(:standard);
+use CGI 4.08 qw(:standard);
 use Socket;
 use DB_File;
 use Net::Wake;
@@ -161,7 +161,7 @@ sub send_mp {
     my %port  = ();
     tie( %entry, 'DB_File', $dbFile, O_RDONLY )
       || die "Cannot open DBM " . $dbFile . ": $!";
-    foreach my $mac ( param('mac') ) {
+    foreach my $mac ( multi_param('mac') ) {
 
         # DB entry could have been deleted by concurrent session
         if (
@@ -463,7 +463,7 @@ sub del_entry {
     my %entry = ();
     tie( %entry, 'DB_File', $dbFile, O_RDWR )
       || die "Cannot open DBM " . $dbFile . ": $!";
-    delete @entry{ param('mac') };
+    delete @entry{ multi_param('mac') };
     untie %entry;
 }
 
@@ -680,7 +680,7 @@ Perl 5.014
 
 =item *
 
-Perl modules: CGI, IO::Interface, Locale::gettext, Net::ARP, Net::Wake
+Perl modules: CGI 4.08, IO::Interface, Locale::gettext, Net::ARP, Net::Wake
 
 =item *
 
